@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chunk File Transfer - Built from Scratch</title>
+<style>
+  :root {
+    --primary-color: #2196f3;
+    --primary-dark: #1976d2;
+    --secondary-color: #4caf50;
+    --danger-color: #f44336;
+    --bg-color: #f5f5f5;
+    --card-bg: #ffffff;
+    --text-color: #333;
+    --text-secondary: #666;
+    --border-color: #ddd;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-color: #1a1a1a;
+      --card-bg: #2d2d2d;
+      --text-color: #e0e0e0;
+      --text-secondary: #aaa;
+      --border-color: #444;
+    }
+  }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    padding: 20px;
+  }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  h1 {
+    font-size: 32px;
+    margin-bottom: 10px;
+    color: var(--primary-color);
+  }
+  .subtitle {
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+  .role-selection {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    max-width: 600px;
+    margin: 0 auto 30px;
+    text-align: center;
+  }
+  .role-buttons {
+    display: flex;
+    gap: 15px;
+  }
+  .btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    flex: 1;
+  }
+  .btn-primary {
+    background: var(--primary-color);
+    color: white;
+  }
+  .btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+  }
+  .btn-secondary {
+    background: var(--secondary-color);
+    color: white;
+  }
+  .btn-secondary:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+  .transfer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+  }
+  @media (max-width: 768px) {
+    .transfer-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .card {
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+  }
+  .card h2 {
+    font-size: 22px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .link-box {
+    background: var(--bg-color);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  .link-input-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  input[type="text"] {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--card-bg);
+    color: var(--text-color);
+  }
+  .btn-copy {
+    padding: 10px 20px;
+    background: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-copy:hover {
+    background: #45a049;
+  }
+  .upload-area {
+    border: 3px dashed var(--border-color);
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 15px;
+  }
+  .upload-area:hover {
+    border-color: var(--primary-color);
+    background: var(--bg-color);
+  }
+  .upload-area.dragging {
+    border-color: var(--primary-color);
+    background: var(--bg-color);
+    transform: scale(1.02);
+  }
+  .upload-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+  }
+  .progress-section {
+    margin-top: 20px;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .progress-bar {
+    width: 100%;
+    height: 30px;
+    background: var(--bg-color);
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    width: 0%;
+    transition: width 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 13px;
+  }
+  .file-info {
+    background: var(--bg-color);
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+  }
+  .file-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .file-info-row:last-child {
+    margin-bottom: 0;
+  }
+  .label {
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-waiting {
+    background: #ffc107;
+    color: #000;
+  }
+  .status-uploading {
+    background: var(--primary-color);
+    color: white;
+  }
+  .status-downloading {
+    background: var(--secondary-color);
+    color: white;
+  }
+  .status-completed {
+    background: #4caf50;
+    color: white;
+  }
+  .stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .download-item {
+    background: var(--bg-color);
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+  }
+  .download-item h4 {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-download {
+    padding: 8px 16px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 10px;
+  }
+  .btn-download:hover {
+    background: var(--primary-dark);
+  }
+  .info-section {
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+  }
+  .info-section h3 {
+    margin-bottom: 15px;
+    color: var(--primary-color);
+  }
+  .info-section ul {
+    padding-left: 20px;
+  }
+  .info-section li {
+    margin-bottom: 10px;
+    color: var(--text-secondary);
+  }
+  .hidden {
+    display: none !important;
+  }
+  .connection-status {
+    background: var(--bg-color);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 14px;
+  }
+</style>
+
+<div class="container">
+    <header>
+        <h1>🔄 Chunk File Transfer System</h1>
+        <p class="subtitle">Real-time chunk-based file streaming | Built from scratch</p>
+    </header>
+
+    <div class="role-selection" id="roleSelection">
+        <h2>Select Your Role</h2>
+        <div class="role-buttons">
+            <button class="btn btn-primary" onclick="app.selectRole('sender')">📤 I'm the Sender</button>
+            <button class="btn btn-secondary" onclick="app.selectRole('receiver')">📥 I'm the Receiver</button>
+        </div>
+    </div>
+
+    <div class="transfer-grid hidden" id="transferGrid">
+        <div class="card" id="senderCard">
+            <h2>📤 Sender</h2>
+
+            <div class="link-box" id="linkBox">
+                <p>🔗 Step 1: Generate Transfer Link</p>
+                <button class="btn btn-primary" id="generateBtn" onclick="app.generateLink()">Generate Link</button>
+
+                <div class="hidden" id="linkDisplay">
+                    <div class="link-input-group">
+                        <input type="text" id="linkInput" readonly />
+                        <button class="btn-copy" onclick="app.copyLink()">📋 Copy</button>
+                    </div>
+                    <p style="font-size: 12px; margin-top: 8px; color: var(--text-secondary);">
+                        ✅ Share this link with the receiver
+                    </p>
+                </div>
+            </div>
+
+            <div class="hidden" id="uploadBox">
+                <div style="background: var(--bg-color); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                    <p style="font-weight: 600; font-size: 14px;">📁 Step 2: Select & Upload File</p>
+                </div>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <p style="font-weight: 600; margin-bottom: 5px;">Drag & Drop file here</p>
+                    <p style="font-size: 13px; color: var(--text-secondary);">or click to browse</p>
+                    <input type="file" id="fileInput" style="display: none;" />
+                </div>
+                <button class="btn btn-primary" id="uploadBtn" disabled onclick="app.startUpload()">Start Upload</button>
+            </div>
+            <div class="progress-section hidden" id="uploadProgress">
+                <div class="progress-label">
+                    <span>Upload Progress</span>
+                    <span id="uploadPercent">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="uploadFill">0%</div>
+                </div>
+                <div class="stats">
+                    <span id="uploadChunk">Chunk 0 / 0</span>
+                    <span id="uploadSpeed">0 KB/s</span>
+                </div>
+                <div class="file-info">
+                    <div class="file-info-row">
+                        <span class="label">File:</span>
+                        <span id="uploadFileName">-</span>
+                    </div>
+                    <div class="file-info-row">
+                        <span class="label">Size:</span>
+                        <span id="uploadFileSize">-</span>
+                    </div>
+                    <div class="file-info-row">
+                        <span class="label">Status:</span>
+                        <span class="status status-waiting" id="uploadStatus">Waiting</span>
+                    </div>
+                    <div class="file-info-row">
+                        <span class="label">Uploaded:</span>
+                        <span id="uploadedBytes">0 MB</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="receiverCard">
+            <h2>📥 Receiver</h2>
+
+            <div class="connection-status" id="connectionStatus">⏳ Waiting for sender to upload file...</div>
+
+            <div class="progress-section">
+                <div class="progress-label">
+                    <span>Download Progress</span>
+                    <span id="downloadPercent">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="downloadFill">0%</div>
+                </div>
+                <div class="stats">
+                    <span id="downloadChunk">Chunk 0 / 0</span>
+                    <span id="downloadSpeed">0 KB/s</span>
+                </div>
+
+                <div class="file-info">
+                    <div class="file-info-row">
+                        <span class="label">File:</span>
+                        <span id="downloadFileName">Waiting...</span>
+                    </div>
+                    <div class="file-info-row">
+                        <span class="label">Size:</span>
+                        <span id="downloadFileSize">-</span>
+                    </div>
+                    <div class="file-info-row">
+                        <span class="label">Status:</span>
+                        <span class="status status-waiting" id="downloadStatus">Waiting</span>
+                    </div>
+                    <div class="file-info-row">
+                        <span class="label">Downloaded:</span>
+                        <span id="downloadedBytes">0 MB</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="downloadedFiles"></div>
+        </div>
+    </div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+class ChunkTransferApp {
+  constructor() {
+    this.CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks
+    this.role = null;
+    this.transferId = null;
+    this.currentFile = null;
+    this.uploadedChunks = [];
+    this.downloadedChunks = [];
+    this.totalChunks = 0;
+    this.uploadStartTime = null;
+    this.downloadStartTime = null;
+    this.uploadedBytes = 0;
+    this.downloadedBytes = 0;
+
+    // Socket.io connection (works local & online)
+    this.socket = io(window.location.origin);
+
+    this.socket.on('connect', () => {
+      console.log('Connected:', this.socket.id);
+    });
+
+    this.socket.on('disconnect', () => {
+      console.log('Disconnected');
+    });
+
+    // Receive chunk event for receiver
+    this.socket.on('receive-chunk', (data) => this.handleReceivedChunk(data));
+
+    // Transfer complete event for receiver
+    this.socket.on('transfer-complete', (data) => this.handleTransferComplete(data));
+
+    this.init();
+  }
+
+  init() {
+    console.log('Chunk Transfer App Initialized');
+    this.checkURLForTransfer();
+    this.setupEventListeners();
+  }
+
+  checkURLForTransfer() {
+    const params = new URLSearchParams(window.location.search);
+    const transferId = params.get('transfer');
+    if (transferId) {
+      this.transferId = transferId;
+      this.selectRole('receiver');
+      this.connectAsReceiver();
+    }
+  }
+
+  setupEventListeners() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragging');
+    });
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragging');
+    });
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragging');
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        fileInput.files = e.dataTransfer.files;
+        this.handleFileSelect({ target: { files: [file] } });
+      }
+    });
+  }
+
+  selectRole(role) {
+    this.role = role;
+    document.getElementById('roleSelection').classList.add('hidden');
+    document.getElementById('transferGrid').classList.remove('hidden');
+    if (role === 'sender') {
+      document.getElementById('senderCard').style.display = 'block';
+      document.getElementById('receiverCard').style.display = 'none';
+    } else {
+      document.getElementById('senderCard').style.display = 'none';
+      document.getElementById('receiverCard').style.display = 'block';
+    }
+  }
+
+  generateLink() {
+    this.transferId = 'transfer_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const baseUrl = window.location.origin + window.location.pathname;
+    const link = `${baseUrl}?transfer=${this.transferId}`;
+    document.getElementById('linkInput').value = link;
+    document.getElementById('linkDisplay').classList.remove('hidden');
+    document.getElementById('generateBtn').disabled = true;
+    document.getElementById('uploadBox').classList.remove('hidden');
+    this.socket.emit('create-transfer', { transferId: this.transferId });
+    alert('Link generated! Share with receiver.');
+  }
+
+  connectAsReceiver() {
+    document.getElementById('connectionStatus').innerHTML = `Connected to transfer ID: ${this.transferId}`;
+    this.socket.emit('join-transfer', { transferId: this.transferId });
+  }
+
+  handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    this.currentFile = file;
+    this.totalChunks = Math.ceil(file.size / this.CHUNK_SIZE);
+    document.getElementById('uploadFileName').textContent = file.name;
+    document.getElementById('uploadFileSize').textContent = this.formatSize(file.size);
+    document.getElementById('uploadBtn').disabled = false;
+    document.getElementById('uploadProgress').classList.remove('hidden');
+  }
+
+  async startUpload() {
+    if (!this.currentFile) return;
+    document.getElementById('uploadStatus').textContent = 'Uploading';
+    document.getElementById('uploadStatus').className = 'status status-uploading';
+    document.getElementById('uploadBtn').disabled = true;
+    this.uploadStartTime = Date.now();
+    this.uploadedBytes = 0;
+    this.uploadedChunks = [];
+    this.socket.emit('start-transfer', {
+      transferId: this.transferId,
+      fileInfo: {
+        name: this.currentFile.name,
+        size: this.currentFile.size,
+        type: this.currentFile.type,
+        totalChunks: this.totalChunks,
+      },
+    });
+    for (let i = 0; i < this.totalChunks; i++) {
+      const start = i * this.CHUNK_SIZE;
+      const end = Math.min(start + this.CHUNK_SIZE, this.currentFile.size);
+      const chunk = this.currentFile.slice(start, end);
+      this.uploadedChunks.push(chunk);
+      this.uploadedBytes += chunk.size;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.socket.emit('upload-chunk', {
+          transferId: this.transferId,
+          chunk: e.target.result,
+          chunkIndex: i,
+          totalChunks: this.totalChunks,
+          fileName: this.currentFile.name,
+          fileSize: this.currentFile.size,
+          fileType: this.currentFile.type,
+        });
+        const progress = ((i + 1) / this.totalChunks) * 100;
+        this.updateUploadProgress(progress, i + 1);
+      };
+      reader.readAsDataURL(chunk);
+      await this.delay(100);
+    }
+    this.socket.emit('transfer-complete', { transferId: this.transferId });
+    this.completeUpload();
+  }
+
+  updateUploadProgress(percent, chunkNum) {
+    document.getElementById('uploadFill').style.width = percent + '%';
+    document.getElementById('uploadFill').textContent = percent.toFixed(1) + '%';
+    document.getElementById('uploadPercent').textContent = percent.toFixed(1) + '%';
+    document.getElementById('uploadChunk').textContent = `Chunk ${chunkNum} / ${this.totalChunks}`;
+    document.getElementById('uploadedBytes').textContent = (this.uploadedBytes / (1024 * 1024)).toFixed(2) + ' MB';
+    const elapsed = (Date.now() - this.uploadStartTime) / 1000;
+    const speed = (this.uploadedBytes / 1024) / elapsed;
+    document.getElementById('uploadSpeed').textContent = speed.toFixed(2) + ' KB/s';
+  }
+
+  handleReceivedChunk(data) {
+    const { chunk, chunkIndex, totalChunks, fileName, fileSize, fileType } = data;
+    fetch(chunk)
+      .then((res) => res.blob())
+      .then((blob) => {
+        this.downloadedChunks[chunkIndex] = blob;
+        this.downloadedBytes += blob.size;
+        const percent = ((chunkIndex + 1) / totalChunks) * 100;
+        this.updateDownloadProgress(percent, chunkIndex + 1, { size: fileSize });
+        if (chunkIndex + 1 === totalChunks) {
+          this.completeDownload({ name: fileName, size: fileSize, type: fileType });
+        }
+      });
+  }
+
+  updateDownloadProgress(percent, chunkNum, fileInfo) {
+    document.getElementById('downloadFill').style.width = percent + '%';
+    document.getElementById('downloadFill').textContent = percent.toFixed(1) + '%';
+    document.getElementById('downloadPercent').textContent = percent.toFixed(1) + '%';
+    document.getElementById('downloadChunk').textContent = `Chunk ${chunkNum} / ${this.totalChunks}`;
+    const downloadedMB = (fileInfo.size * percent) / 100 / (1024 * 1024);
+    document.getElementById('downloadedBytes').textContent = downloadedMB.toFixed(2) + ' MB';
+    document.getElementById('downloadStatus').textContent = 'Downloading';
+    document.getElementById('downloadStatus').className = 'status status-downloading';
+  }
+
+  completeUpload() {
+    document.getElementById('uploadStatus').textContent = 'Completed';
+    document.getElementById('uploadStatus').className = 'status status-completed';
+    document.getElementById('downloadFill').style.width = '100%';
+    document.getElementById('downloadFill').textContent = '100%';
+    document.getElementById('downloadPercent').textContent = '100%';
+    document.getElementById('downloadStatus').textContent = 'Completed';
+    document.getElementById('downloadStatus').className = 'status status-completed';
+    this.createDownloadButton();
+    alert('✅ Transfer completed successfully!');
+  }
+
+  completeDownload(fileInfo) {
+    document.getElementById('downloadStatus').textContent = 'Completed';
+    document.getElementById('downloadStatus').className = 'status status-completed';
+    const blob = new Blob(this.downloadedChunks, { type: fileInfo.type });
+    const url = URL.createObjectURL(blob);
+    const downloadDiv = document.getElementById('downloadedFiles');
+    downloadDiv.innerHTML = `
+      <div class="download-item">
+        <h4>✅ ${fileInfo.name}</h4>
+        <p style="font-size: 13px; color: var(--text-secondary); margin: 5px 0;">
+          Size: ${this.formatSize(fileInfo.size)}
+        </p>
+        <button class="btn-download" onclick="app.downloadFile('${url}', '${fileInfo.name}')">
+          💾 Download File
+        </button>
+      </div>
+    `;
+  }
+
+  createDownloadButton() {
+    if (this.role !== 'sender') return;
+    const blob = new Blob(this.uploadedChunks, { type: this.currentFile.type });
+    const url = URL.createObjectURL(blob);
+    const downloadDiv = document.getElementById('downloadedFiles');
+    if (downloadDiv) {
+      downloadDiv.innerHTML = `
+        <div class="download-item">
+          <h4>✅ ${this.currentFile.name}</h4>
+          <p style="font-size: 13px; color: var(--text-secondary); margin: 5px 0;">
+            Transfer completed successfully
+          </p>
+        </div>
+      `;
+    }
+  }
+
+  downloadFile(url, filename) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    alert('💾 File downloaded!');
+  }
+
+  formatSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+  }
+
+  delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+}
+
+const app = new ChunkTransferApp();
+
+</script>
+</body>
+</html>
