@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Offline Share</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    h2 { color: #065fd4; }
+    .btn { padding: 12px 24px; margin: 16px; font-size: 18px; background: #2196f3; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+    .btn:hover { background: #1763a6; }
+    .info { margin: 18px 0 0 0; color: #444; }
+  </style>
+</head>
+<body>
+  <h2>Offline File Share (ShareMe Style)</h2>
+  <button class="btn" onclick="location.href='sender.html'">Offline Sender</button>
+  <button class="btn" onclick="location.href='offlineReceiver.html'">Offline Receiver</button>
+  <div class="info">
+    Peer-to-peer, pure offline file transfer via browser.<br>
+    Both devices must be connected to the same Wi-Fi or hotspot, no internet required.<br>
+    <b>How it works:</b>
+    <ol>
+      <li>Sender: Open "Offline Sender", select file, create offer and share it with receiver.</li>
+      <li>Receiver: Open "Offline Receiver", paste offer, make answer, and return answer to sender.</li>
+      <li>Once connected, file transfer will start directly device-to-device!</li>
+    </ol>
+  </div>
+</body>
+</html>

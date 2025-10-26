@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebRTC Offline Receiver</title>
+  <style>
+    body { font-family: Arial,sans-serif; margin: 30px; background: #f0f6fb;}
+    h2 { color: #065fd4; }
+    textarea { width: 98%; font-size: 16px; border-radius: 4px; border: 1px solid #bbb; padding: 6px;}
+    .block { margin: 18px 0;}
+    button { background: #2196f3; color: white; border: none; border-radius: 6px; padding: 10px 18px; font-size: 16px; cursor: pointer; }
+    a.download-link { display: none; font-size: 18px; margin-top: 20px; color: #2196f3; text-decoration: none;}
+    #status { margin-top: 16px; font-size: 17px; color: #333; }
+  </style>
+</head>
+<body>
+  <h2>Receive File (Offline Mode)</h2>
+  <div class="block">
+    <label>1. Paste sender's Offer here:</label><br/>
+    <textarea id="signalIn" rows="7"></textarea>
+  </div>
+  <button id="startBtn">Create Answer</button>
+  <div class="block">
+    <label>2. Copy this Answer to sender:</label>
+    <textarea id="signalOut" rows="7" readonly></textarea>
+  </div>
+  <a id="downloadLink" class="download-link">Download Received File</a>
+  <div id="status"></div>
+  <script>
+    let pc = new RTCPeerConnection();
+    let channel;
+    let fileMeta;
+    let receivedBuffers = [];
+    let size = 0;
+
+    const signalIn = document.getElementById('signalIn');
+    const signalOut = document.getElementById('signalOut');
+    const startBtn = document.getElementById('startBtn');
+    const downloadLink = document.getElementById('downloadLink');
+    const status = document.getElementById('status');
+
+    startBtn.onclick = async () => {
+      try {
+        const offer = JSON.parse(atob(signalIn.value));
+        await pc.setRemoteDescription(offer);
+        pc.onicecandidate = e => {
+          if (!e.candidate) {
+            signalOut.value = btoa(JSON.stringify(pc.localDescription));
+          }
+        };
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        status.textContent = "Answer created!";
+      } catch {
+        alert("Invalid offer data!");
+      }
+    };
+
+    pc.ondatachannel = event => {
+      channel = event.channel;
+      channel.onmessage = (event) => {
+        if (!fileMeta && typeof event.data === "string") {
+          try {
+            fileMeta = JSON.parse(event.data);
+            status.textContent = `Receiving: ${fileMeta.fileName}`;
+            return;
+          } catch {}
+        }
+        if (event.data === "<<EOF>>") {
+          const blob = new Blob(receivedBuffers, { type: fileMeta?.fileType || 'application/octet-stream' });
+          downloadLink.href = URL.createObjectURL(blob);
+          downloadLink.download = fileMeta?.fileName || 'received_file';
+          downloadLink.style.display = 'inline-block';
+          downloadLink.textContent = `Download ${fileMeta.fileName}`;
+          status.textContent = "Transfer complete!";
+          receivedBuffers = [];
+          return;
+        }
+        receivedBuffers.push(event.data);
+        size += event.data.byteLength || 0;
+        if (fileMeta?.fileSize) {
+          let perc = (size / fileMeta.fileSize) * 100;
+          status.textContent = `Received: ${(size / (1024*1024)).toFixed(2)} MB (${perc.toFixed(1)}%)`;
+        } else {
+          status.textContent = `Received: ${(size / (1024*1024)).toFixed(2)} MB`;
+        }
+      };
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebRTC Offline Sender</title>
+  <style>
+    body { font-family: Arial,sans-serif; margin: 30px; background: #f0f6fb;}
+    h2 { color: #065fd4; }
+    textarea { width: 98%; font-size: 16px; border-radius: 4px; border: 1px solid #bbb; padding: 6px;}
+    .block { margin: 18px 0;}
+    input[type=file] { font-size: 16px; }
+    button { background: #2196f3; color: white; border: none; border-radius: 6px; padding: 10px 18px; font-size: 16px; cursor: pointer; }
+    button:disabled { opacity: 0.6; cursor: default; }
+    #status { margin-top: 16px; font-size: 17px; color: #333; }
+  </style>
+</head>
+<body>
+  <h2>Send File (Offline Mode)</h2>
+  <input type="file" id="fileInput"><br/>
+  <button id="startBtn" disabled>Create & Send Offer</button>
+  <div class="block">
+    <label>1. Copy and send this Offer to Receiver:</label>
+    <textarea id="signalOut" rows="7" readonly></textarea>
+  </div>
+  <div class="block">
+    <label>2. Paste receiver's Answer here:</label><br/>
+    <input id="signalIn" style="width: 85%;" />
+    <button id="connectBtn">Connect</button>
+  </div>
+  <div id="status"></div>
+
+  <script>
+    let pc = new RTCPeerConnection();
+    let channel;
+    let file;
+    const chunkSize = 60 * 1024; // 60 KB for stability
+
+    const startBtn = document.getElementById('startBtn');
+    const fileInput = document.getElementById('fileInput');
+    const signalOut = document.getElementById('signalOut');
+    const signalIn = document.getElementById('signalIn');
+    const connectBtn = document.getElementById('connectBtn');
+    const status = document.getElementById('status');
+
+    fileInput.onchange = () => startBtn.disabled = !fileInput.files.length;
+
+    startBtn.onclick = async () => {
+      file = fileInput.files[0];
+      if (!file) return alert("Select a file!");
+      channel = pc.createDataChannel("file");
+      channel.onopen = sendChunks;
+      pc.onicecandidate = e => {
+        if (!e.candidate) {
+          signalOut.value = btoa(JSON.stringify(pc.localDescription));
+        }
+      };
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+    };
+
+    connectBtn.onclick = async () => {
+      try {
+        const answer = JSON.parse(atob(signalIn.value));
+        await pc.setRemoteDescription(answer);
+        status.textContent = "Connected!";
+      } catch {
+        alert("Invalid answer signal!");
+      }
+    };
+
+    // Throttle send on browser buffer
+    async function sendChunks() {
+      status.textContent = "Sending file metadata...";
+      channel.send(JSON.stringify({ fileName: file.name, fileType: file.type, fileSize: file.size }));
+
+      let offset = 0;
+      let lastLoggedMB = 0;
+      function next() {
+        if (offset >= file.size) {
+          channel.send("<<EOF>>");
+          status.textContent = "File sent successfully!";
+          return;
+        }
+        // Pause sending if too much data in buffer (8MB threshold)
+        if (channel.bufferedAmount > 8 * 1024 * 1024) {
+          setTimeout(next, 100);
+          return;
+        }
+        const slice = file.slice(offset, offset + chunkSize);
+        slice.arrayBuffer().then(buf => {
+          channel.send(buf);
+          offset += chunkSize;
+          let sentMB = Math.floor(offset / (1024*1024));
+          if (sentMB > lastLoggedMB) {
+            status.textContent = `Sent: ${sentMB} MB`;
+            lastLoggedMB = sentMB;
+          }
+          next();
+        });
+      }
+      next();
+    }
+  </script>
+</body>
+</html>
