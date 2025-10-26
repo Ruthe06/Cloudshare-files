@@ -452,6 +452,10 @@ class ChunkTransferApp {
     this.socket.on('disconnect', () => {
       console.log('Disconnected');
     });
+    this.socket.on('upload-chunk', (data) => {
+  if (data.transferId !== this.transferId) return; // ignore other transfers
+  this.handleReceivedChunk(data);
+});
 
     // Receive chunk event for receiver
     this.socket.on('receive-chunk', (data) => this.handleReceivedChunk(data));
@@ -460,6 +464,7 @@ class ChunkTransferApp {
     this.socket.on('transfer-complete', (data) => this.handleTransferComplete(data));
 
     this.init();
+    
   }
 
   init() {
@@ -613,7 +618,7 @@ readFileChunk(blob) {
 
 handleReceivedChunk(data) {
   const { chunk, chunkIndex, totalChunks, fileName, fileSize, fileType } = data;
-  // chunk is already ArrayBuffer, so direct Blob creation
+  // Fetch remove panni direct Blob create pannu
   const blob = new Blob([chunk]);
   this.downloadedChunks[chunkIndex] = blob;
   this.downloadedBytes += blob.size;
@@ -623,6 +628,7 @@ handleReceivedChunk(data) {
     this.completeDownload({ name: fileName, size: fileSize, type: fileType });
   }
 }
+
 
 
   updateDownloadProgress(percent, chunkNum, fileInfo) {
