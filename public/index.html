@@ -611,20 +611,19 @@ readFileChunk(blob) {
     document.getElementById('uploadSpeed').textContent = speed.toFixed(2) + ' KB/s';
   }
 
-  handleReceivedChunk(data) {
-    const { chunk, chunkIndex, totalChunks, fileName, fileSize, fileType } = data;
-    fetch(chunk)
-      .then((res) => res.blob())
-      .then((blob) => {
-        this.downloadedChunks[chunkIndex] = blob;
-        this.downloadedBytes += blob.size;
-        const percent = ((chunkIndex + 1) / totalChunks) * 100;
-        this.updateDownloadProgress(percent, chunkIndex + 1, { size: fileSize });
-        if (chunkIndex + 1 === totalChunks) {
-          this.completeDownload({ name: fileName, size: fileSize, type: fileType });
-        }
-      });
+handleReceivedChunk(data) {
+  const { chunk, chunkIndex, totalChunks, fileName, fileSize, fileType } = data;
+  // chunk is already ArrayBuffer, so direct Blob creation
+  const blob = new Blob([chunk]);
+  this.downloadedChunks[chunkIndex] = blob;
+  this.downloadedBytes += blob.size;
+  const percent = ((chunkIndex + 1) / totalChunks) * 100;
+  this.updateDownloadProgress(percent, chunkIndex + 1, { size: fileSize });
+  if (chunkIndex + 1 === totalChunks) {
+    this.completeDownload({ name: fileName, size: fileSize, type: fileType });
   }
+}
+
 
   updateDownloadProgress(percent, chunkNum, fileInfo) {
     document.getElementById('downloadFill').style.width = percent + '%';
