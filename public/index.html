@@ -605,16 +605,21 @@ readFileChunk(blob) {
   });
 }
 
-  updateUploadProgress(percent, chunkNum) {
-    document.getElementById('uploadFill').style.width = percent + '%';
-    document.getElementById('uploadFill').textContent = percent.toFixed(1) + '%';
-    document.getElementById('uploadPercent').textContent = percent.toFixed(1) + '%';
-    document.getElementById('uploadChunk').textContent = `Chunk ${chunkNum} / ${this.totalChunks}`;
-    document.getElementById('uploadedBytes').textContent = (this.uploadedBytes / (1024 * 1024)).toFixed(2) + ' MB';
-    const elapsed = (Date.now() - this.uploadStartTime) / 1000;
-    const speed = (this.uploadedBytes / 1024) / elapsed;
-    document.getElementById('uploadSpeed').textContent = speed.toFixed(2) + ' KB/s';
-  }
+  updateDownloadProgress(percent, chunkNum, fileInfo) {
+  document.getElementById('downloadFill').style.width = percent + '%';
+  document.getElementById('downloadFill').textContent = percent.toFixed(1) + '%';
+  document.getElementById('downloadPercent').textContent = percent.toFixed(1) + '%';
+
+  // ungala chunkNum update panna ethavathu error irukka check pannu
+  document.getElementById('downloadChunk').textContent = `Chunk ${chunkNum} / ${this.totalChunks}`;
+
+  const downloadedMB = (fileInfo.size * percent) / 100 / (1024 * 1024);
+  document.getElementById('downloadedBytes').textContent = downloadedMB.toFixed(2) + ' MB';
+  
+  document.getElementById('downloadStatus').textContent = 'Downloading';
+  document.getElementById('downloadStatus').className = 'status status-downloading';
+}
+
 
 handleReceivedChunk(data) {
   const { chunk, chunkIndex, totalChunks, fileName, fileSize, fileType } = data;
@@ -631,16 +636,20 @@ handleReceivedChunk(data) {
 
 
 
-  updateDownloadProgress(percent, chunkNum, fileInfo) {
-    document.getElementById('downloadFill').style.width = percent + '%';
-    document.getElementById('downloadFill').textContent = percent.toFixed(1) + '%';
-    document.getElementById('downloadPercent').textContent = percent.toFixed(1) + '%';
-    document.getElementById('downloadChunk').textContent = `Chunk ${chunkNum} / ${this.totalChunks}`;
-    const downloadedMB = (fileInfo.size * percent) / 100 / (1024 * 1024);
-    document.getElementById('downloadedBytes').textContent = downloadedMB.toFixed(2) + ' MB';
-    document.getElementById('downloadStatus').textContent = 'Downloading';
-    document.getElementById('downloadStatus').className = 'status status-downloading';
-  }
+updateDownloadProgress(percent, chunkNum, fileInfo) {
+  document.getElementById('downloadFill').style.width = percent + '%';
+  document.getElementById('downloadFill').textContent = percent.toFixed(1) + '%';
+  document.getElementById('downloadPercent').textContent = percent.toFixed(1) + '%';
+
+  // ungala chunkNum update panna ethavathu error irukka check pannu
+  document.getElementById('downloadChunk').textContent = `Chunk ${chunkNum} / ${this.totalChunks}`;
+
+  const downloadedMB = (fileInfo.size * percent) / 100 / (1024 * 1024);
+  document.getElementById('downloadedBytes').textContent = downloadedMB.toFixed(2) + ' MB';
+  
+  document.getElementById('downloadStatus').textContent = 'Downloading';
+  document.getElementById('downloadStatus').className = 'status status-downloading';
+}
 
   completeUpload() {
     document.getElementById('uploadStatus').textContent = 'Completed';
