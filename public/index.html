@@ -550,49 +550,55 @@ class ChunkTransferApp {
     document.getElementById('uploadProgress').classList.remove('hidden');
   }
 
-  async startUpload() {
-    if (!this.currentFile) return;
-    document.getElementById('uploadStatus').textContent = 'Uploading';
-    document.getElementById('uploadStatus').className = 'status status-uploading';
-    document.getElementById('uploadBtn').disabled = true;
-    this.uploadStartTime = Date.now();
-    this.uploadedBytes = 0;
-    this.uploadedChunks = [];
-    this.socket.emit('start-transfer', {
+async startUpload() {
+  if (!this.currentFile) return;
+
+  document.getElementById('uploadStatus').textContent = 'Uploading';
+  document.getElementById('uploadStatus').className = 'status status-uploading';
+  document.getElementById('uploadBtn').disabled = true;
+
+  this.uploadStartTime = Date.now();
+  this.uploadedBytes = 0;
+  this.uploadedChunks = [];
+
+  for (let i = 0; i < this.totalChunks; i++) {
+    const start = i * this.CHUNK_SIZE;
+    const end = Math.min(start + this.CHUNK_SIZE, this.currentFile.size);
+    const chunk = this.currentFile.slice(start, end);
+    this.uploadedChunks.push(chunk);
+    this.uploadedBytes += chunk.size;
+
+    // Read chunk as ArrayBuffer (not base64) - faster, stable
+    const arrayBuffer = await this.readFileChunk(chunk);
+
+    this.socket.emit('upload-chunk', {
       transferId: this.transferId,
-      fileInfo: {
-        name: this.currentFile.name,
-        size: this.currentFile.size,
-        type: this.currentFile.type,
-        totalChunks: this.totalChunks,
-      },
+      chunk: arrayBuffer,
+      chunkIndex: i,
+      totalChunks: this.totalChunks,
+      fileName: this.currentFile.name,
+      fileSize: this.currentFile.size,
+      fileType: this.currentFile.type,
     });
-    for (let i = 0; i < this.totalChunks; i++) {
-      const start = i * this.CHUNK_SIZE;
-      const end = Math.min(start + this.CHUNK_SIZE, this.currentFile.size);
-      const chunk = this.currentFile.slice(start, end);
-      this.uploadedChunks.push(chunk);
-      this.uploadedBytes += chunk.size;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        this.socket.emit('upload-chunk', {
-          transferId: this.transferId,
-          chunk: e.target.result,
-          chunkIndex: i,
-          totalChunks: this.totalChunks,
-          fileName: this.currentFile.name,
-          fileSize: this.currentFile.size,
-          fileType: this.currentFile.type,
-        });
-        const progress = ((i + 1) / this.totalChunks) * 100;
-        this.updateUploadProgress(progress, i + 1);
-      };
-      reader.readAsDataURL(chunk);
-      await this.delay(100);
-    }
-    this.socket.emit('transfer-complete', { transferId: this.transferId });
-    this.completeUpload();
+
+    const progress = ((i + 1) / this.totalChunks) * 100;
+    this.updateUploadProgress(progress, i + 1);
+
+    // No delay here - send chunks as fast as possible
   }
+  this.socket.emit('transfer-complete', { transferId: this.transferId });
+  this.completeUpload();
+}
+
+// New helper method to read file chunk as ArrayBuffer using Promise
+readFileChunk(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(blob);
+  });
+}
 
   updateUploadProgress(percent, chunkNum) {
     document.getElementById('uploadFill').style.width = percent + '%';
